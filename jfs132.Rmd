@@ -1,0 +1,66 @@
+---
+title: "植生被度階級データの状態空間モデリング"
+author: "伊東宏樹"
+date: '2021-03-21'
+output:
+  beamer_presentation:
+    latex_engine: lualatex
+    theme: metropolis
+    keep_tex: no
+    toc: true
+    slide_level: 2
+    includes:
+      in_header: header.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(cmdstanr)
+cmdstanpath <- "/usr/local/cmdstan"
+set_cmdstan_path(cmdstanpath)
+library(posterior)
+library(bayesplot)
+```
+
+# 状態空間モデル
+
+- 状態方程式
+- 観測方程式
+
+
+
+# 植生被度階級データ
+
+## 被度階級
+
+ここでは以下のようにする。
+
+- 0--0.01 -> 1
+- 0.01--0.1 -> 2
+- 0.1--0.25 -> 3
+- 0.25--0.5 -> 4
+- 0.5--0.75 -> 5
+- 0.75--1 -> 6
+
+## Zero-inflation
+
+
+## 測定誤差
+
+
+
+## モデリング
+
+Stanによる実装
+
+# 植生被度階級データの状態空間モデリング
+
+## 模擬データ
+
+# まとめ
+
+
+
+
+
+

@@ -2,3 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# TeX files
+*.log
+*.aux

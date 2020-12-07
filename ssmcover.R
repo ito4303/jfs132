@@ -30,7 +30,7 @@ conv_class <- function(x, delta = 0.05,
 # Simulated data
 ## Settings
 Nt <- 15                    # time span
-Nq <- 10                     # number of quadrats
+Nq <- 10                    # number of quadrats
 cut_points <- c(0.01, 0.1, 0.25, 0.5, 0.75) # cut points
 theta <- rep(NA, Nt)        # temporal change in the site
 r <- rep(NA, Nq)            # spatial change in the site
