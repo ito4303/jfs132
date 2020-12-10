@@ -14,9 +14,9 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+library(ggplot2)
 library(cmdstanr)
-cmdstanpath <- "/usr/local/cmdstan"
-set_cmdstan_path(cmdstanpath)
+options(mc.cores = parallel::detectCores())
 library(posterior)
 library(bayesplot)
 ```
@@ -28,12 +28,51 @@ library(bayesplot)
 
 # 状態空間モデル
 
+## 時系列データ
+
+```{r timeseries, fig.width=10, fig.height=5, out.height="5cm"}
+set.seed(123)
+N <- 100
+Nt <- 20
+x <- 1:Nt
+y <- matrix(0, ncol = N, nrow = Nt)
+p <- rep(0, N)
+for (t in 2:Nt)
+  y[t, ] <- y[t - 1, ] + rnorm(N, 0, 0.1)
+for (n in 1:N)
+  p[n] <- summary(lm(y[, n] ~ x))$coefficient["x", "Pr(>|t|)"]
+col <- ifelse(p < 0.05, "red", "black")
+df <- data.frame(Time = rep(1:Nt, N),
+                 Y = c(y),
+                 group = factor(rep(1:N, each = Nt)),
+                 colour = rep(col, each = N))
+ggplot(df) +
+  geom_line(aes(x = Time, y = Y, group = group),
+            colour = df$colour, alpha = 0.67) +
+  theme_classic(base_family = "Helvetica", base_size = 18)
+```
+
+単純に時間を説明変数にして回帰すると、ランダムウォークでも多くの場合「ゆーい」になる。
+
+## 状態空間モデル
+
+
+\begin{center}
+\includegraphics[width=9cm]{ssm.pdf}
+\end{center}
+
 - 状態方程式
 - 観測方程式
 
 
 
 # 植生被度階級データ
+
+## 被度階級
+
+- 0 < r < + < 1 < 2 < 3 < 4 < 5 など
+- 順序尺度データ
+
 
 ## 被度階級
 
@@ -55,11 +94,17 @@ library(bayesplot)
 
 ## モデリング
 
-Stanによる実装
+ベータ分布
+
+## Stanによる実装
+
+
 
 # 植生被度階級データの状態空間モデリング
 
 ## 模擬データ
+
+
 
 # まとめ
 
