@@ -7,8 +7,9 @@
 
 %% フォントの設定
 \setsansfont[Scale=1.0]{TeX Gyre Heros}
-%% http://mathematicalcoffee.blogspot.com/2012/03/getting-straight-single-quotes-for.html
-\setmonofont[Scale=MatchLowercase,Ligatures=Common]{Latin Modern Mono}
+\usepackage{unicode-math}
+\unimathsetup{math-style=ISO,bold-style=ISO}
+\setmathfont{FiraMath-Regular.otf}
 
 %% 日本語フォントの設定
 \usepackage[deluxe,noto-otf]{luatexja-preset}
@@ -29,3 +30,5 @@
 \setbeamerfont{title}{size=\Huge, series=\bfseries}
 \setbeamerfont{section title}{size=\LARGE, series=\bfseries}
 \setbeamerfont{frametitle}{size=\Large, series=\bfseries}
+
+
