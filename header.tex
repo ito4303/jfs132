@@ -6,10 +6,13 @@
 }
 
 %% フォントの設定
+%% https://org-technology.com/posts/lualatex-unicode-math.html
+\setmainfont[Ligatures=TeX]{TeX Gyre Heros}
 \setsansfont[Scale=1.0]{TeX Gyre Heros}
 \usepackage{unicode-math}
 \unimathsetup{math-style=ISO,bold-style=ISO}
-\setmathfont{FiraMath-Regular.otf}
+\setmathfont[Scale=MatchLowercase]{FiraMath-Regular.otf}
+\setmathrm[Scale=MatchLowercase]{FiraMath-Regular.otf}
 
 %% 日本語フォントの設定
 \usepackage[deluxe,noto-otf]{luatexja-preset}

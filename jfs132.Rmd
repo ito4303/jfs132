@@ -178,7 +178,7 @@ $\delta$を変化させたとき、平均被度に対して、各被度階級が
 <!-- Function definition -->
 
 ```{r gen_sim_data, include=FALSE}
-cover_prob <- function(cover, cut_points, a, b) {
+cover_prob <- function(cut_points, a, b) {
   n <- length(cut_points)
   pr <- rep(0, n + 1)
   pr[1] <- pbeta(cut_points[1], a, b)
@@ -201,7 +201,7 @@ sim_cover_prob <- function(delta = c(0.001, 0.01, 0.05, 0.1),
     a <- q / d - q
     b <- (1 - q) * (1 - d) / d
     pr <- sapply(seq_along(q),
-                 function(i) cover_prob(q[i], cut_points, a[i], b[i]))
+                 function(i) cover_prob(cut_points, a[i], b[i]))
   })
   df <- data.frame(delta = rep(paste0("delta=", delta), each = length(q) * (nk + 1)),
                    Cover = rep(rep(q, each = nk + 1), length(delta)),
@@ -256,7 +256,7 @@ sim_cover_prob(delta = 0.4)
 
 ## 模擬データ {#simdata1}
 
-```{r sim1_datagen, include=FALSE}
+```{r sim1_datagen}
 cover_class <- function(q, delta = 0.1, N = 1,
                         cp = c(0.01, 0.1, 0.25, 0.5, 0.75)) {
   nk <- length(cp)
@@ -290,9 +290,9 @@ print(y)
 ## モデルへのあてはめ {#fit_1}
 
 ```{r sim1_fit, include=FALSE}
-results_file <- "fit_sim1.RData"
-if (file.exists(results_file)) {
-  load(results_file)
+output_file <- "fit1.RDS"
+if (file.exists(output_file)) {
+  fit1 <- readRDS(output_file)
 } else {
   data <- list(N_cls = length(k) + 1,
                N = N,
@@ -301,36 +301,217 @@ if (file.exists(results_file)) {
   model <- cmdstan_model("cover.stan")
   fit1 <- model$sample(data = data,
                        chains = 4, parallel_chains = 4,
-                       iter_sampling = 1000, iter_warmup = 1000)
-  save(fit1, file = results_file)
+                       iter_sampling = 2000, iter_warmup = 2000,
+                       adapt_delta = 0.95)
+  fit1$save_object(output_file)
 }
 ```
 
-## 事後分布の要約 {#summary_1}
-
-```{r sim1_summary, echo=FALSE}
-fit1$summary(variables = c("mu", "delta"))
+```{r, echo=TRUE}
+fit1$print(c("mu", "delta"))
 ```
 
-## Zero-inflation
+## モデルの拡張
 
-
-## 測定誤差
-
-
-
-## モデリング
-
-ベータ分布
-
-## Stanによる実装
-
-
+- Zero-inflation
+- 測定誤差
 
 # 植生被度階級データの状態空間モデリング
 
 ## 模擬データ
 
+```{r sim2_data}
+set.seed(4)
+Nt <- 30
+sigma <- 0.5
+theta <- rep(0, Nt)
+theta[1] <- log(0.005 / (1 - 0.005))
+for (t in 2:Nt)
+  theta[t] <- rnorm(1, theta[t - 1], sigma)
+mu <- 1 / (1 + exp(-theta))
+
+# generate class data
+cover_rng <- function(cut_points, a, b) {
+  n <- length(cut_points)
+  pr <- rep(0, n + 1)
+  pr[1] <- pbeta(cut_points[1], a, b)
+  for (k in 2:n)
+    pr[k] <- pbeta(cut_points[k], a, b) -
+             pbeta(cut_points[k - 1], a, b)
+  pr[n + 1] <- 1 - pbeta(cut_points[n], a, b)
+  rcat(1, pr)
+}
+
+k = c(0.01, 0.1, 0.25, 0.5, 0.75)
+delta <- 0.05
+a <- mu / delta - mu
+b <- (1 - mu) * (1 - delta) / delta
+
+y <- sapply(seq_len(Nt),
+            function(t)
+              cover_rng(k, a[t], b[t]))
+med_cover <- (c(k, 1) - c(0, k)) / 2 + c(0, k)
+
+df <- data.frame(time = 1:Nt,
+                 mu = mu,
+                 Y = med_cover[y],
+                 lab_mu = "True value",
+                 lab_Y = "Observed (class med.)")
+ggplot(df) +
+  geom_line(aes(x = time, y = mu, colour = lab_mu), size = 2) +
+  geom_point(aes(x = time, y = Y, colour = lab_Y), size = 3) +
+  scale_colour_manual(name = "", values = c("red", "blue")) + 
+  labs(x = "Time", y = "Cover") +
+  theme_bw(base_family = "Helvetica", base_size = 24) +
+  theme(legend.position = "bottom")
+```
+
+## System Model
+
+潜在状態$\theta$の時間変化
+
+\begin{align*}
+\mathrm{logit}(\mu_t) &= \theta_t \\
+\theta_t &= \theta_{t-1} + \epsilon_t \\
+\epsilon_t &\sim \mathrm{Normal}(0, \sigma^2)
+\end{align*}
+
+$\mu$は、被度（ベータ分布）の平均値
+
+## Observation Model
+
+\begin{align*}
+Y_t &\sim \mathrm{Categorical}(\Pr(Y_t = i \mid \mu_t, \delta)), \; i \in {1,\dots,6} \\
+\Pr(Y_t = 1 \mid \mu_t, \delta) &=  I\left(k_1, \frac{\mu_t}{\delta}-\mu_t,\frac{(1-\mu_t)(1-\delta)}{\delta}\right) \\
+\Pr(Y_t = i \mid \mu_t, \delta) &= I\left(k_i,\frac{\mu_t}{\delta}-\mu_t,\frac{(1-\mu_t)(1-\delta)}{\delta}\right) \\
+   & - I\left(k_{i-1},\frac{\mu_t}{\delta}-\mu_t,\frac{(1-\mu_t)(1-\delta)}{\delta}\right), \; i \in {2,\dots,5} \\
+\Pr(Y_t = 6 \mid \mu_t, \delta) &= 1 - I\left(k_5,\frac{\mu_t}{\delta}-\mu_t,\frac{(1-\mu_t)(1-\delta)}{\delta}\right)
+\end{align*}
+
+$I$は正則化不完全ベータ関数, $k_i$は階級の境界値
+
+## Stan
+
+```{r sim2_fit, include=FALSE}
+output_file <- "fit2.RDS"
+if (file.exists(output_file)) {
+  fit2 <- readRDS(output_file)
+} else {
+  data <- list(N_cls = length(k) + 1,
+               N_t = Nt,
+               Y = y,
+               CP = k)
+  model <- cmdstan_model("cover_ssm.stan")
+  fit2 <- model$sample(data = data,
+                       chains = 4, parallel_chains = 4,
+                       iter_sampling = 2000, iter_warmup = 2000,
+                       adapt_delta = 0.95)
+  fit2$save_object(output_file)
+}
+```
+
+
+```{r, echo=TRUE}
+fit2$print(c("delta", "sigma"))
+```
+
+## Posterior Predictive Check
+
+```{r sim2_ppc}
+yrep <- posterior::as_draws_matrix(fit2$draws(variables = "yrep"))
+ppc_rootogram(y, yrep) +
+  theme_classic(base_family = "Helvetica", base_size = 24)
+```
+
+
+## Plot
+
+
+```{r sim2_plot}
+mu_summary <- fit2$summary("mu")
+df <- data.frame(time = 1:Nt, mu = mu, Y = med_cover[y],
+                 mean = mu_summary[, "mean"],
+                 q5 = mu_summary[, "q5"],
+                 q95 = mu_summary[, "q95"],
+                 lab_mu = "True value",
+                 lab_Y = "Observed",
+                 lab_smth = "Smoothed")
+ggplot(df) +
+  geom_line(aes(x = time, y = mu, colour = lab_mu), size = 2) +
+  geom_point(aes(x = time, y = Y, colour = lab_Y), size = 3) +
+  geom_line(aes(x = time, y = mean, colour = lab_smth), size = 1) +
+  geom_ribbon(aes(x = time, ymin = q5, ymax = q95), fill = "gray",
+              alpha = 0.33) +
+  scale_colour_manual(name = "", values = c("red", "black", "blue")) + 
+  labs(x = "Time", y = "Cover") +
+  theme_bw(base_family = "Helvetica", base_size = 24) +
+  theme(legend.position = "bottom")
+```
+
+## Trend model
+
+潜在状態$\theta$は、傾きがわずかに変化するとする（2階差分）
+
+\begin{align*}
+\mathrm{logit}(\mu_t) &= \theta_t \\
+\theta_t - \theta_{t - 1} &= \theta_{t-1} - \theta_{t-2} + \epsilon_t \\
+\epsilon_t &\sim \mathrm{Normal}(0, \sigma^2)
+\end{align*}
+
+```{r sim3_fit, include=FALSE}
+output_file <- "fit3.RDS"
+if (file.exists(output_file)) {
+  fit3 <- readRDS(output_file)
+} else {
+  data <- list(N_cls = length(k) + 1,
+               N_t = Nt,
+               Y = y,
+               CP = k)
+  model <- cmdstan_model("cover_ssm2.stan")
+  fit3 <- model$sample(data = data,
+                       chains = 4, parallel_chains = 4,
+                       iter_sampling = 2000, iter_warmup = 2000,
+                       adapt_delta = 0.95, max_treedepth = 20)
+  fit3$save_object(output_file)
+}
+```
+
+## Fit
+
+```{r sim3_summary, echo=TRUE}
+fit3$print(c("delta", "sigma"))
+```
+
+## Posterior Predictive Check
+
+```{r sim3_ppc}
+yrep <- posterior::as_draws_matrix(fit3$draws(variables = "yrep"))
+ppc_rootogram(y, yrep) +
+  theme_classic(base_family = "Helvetica", base_size = 24)
+```
+
+## Plot
+
+```{r sim3_plot}
+mu_summary <- fit3$summary("mu")
+df <- data.frame(time = 1:Nt, mu = mu, Y = med_cover[y],
+                 mean = mu_summary[, "mean"],
+                 q5 = mu_summary[, "q5"],
+                 q95 = mu_summary[, "q95"],
+                 lab_mu = "True value",
+                 lab_Y = "Observed",
+                 lab_smth = "Smoothed")
+ggplot(df) +
+  geom_line(aes(x = time, y = mu, colour = lab_mu), size = 2) +
+  geom_point(aes(x = time, y = Y, colour = lab_Y), size = 3) +
+  geom_line(aes(x = time, y = mean, colour = lab_smth), size = 1) +
+  geom_ribbon(aes(x = time, ymin = q5, ymax = q95), fill = "gray",
+              alpha = 0.33) +
+  scale_colour_manual(name = "", values = c("red", "black", "blue")) + 
+  labs(x = "Time", y = "Cover") +
+  theme_bw(base_family = "Helvetica", base_size = 24) +
+  theme(legend.position = "bottom")
+```
 
 
 # まとめ
