@@ -14,10 +14,9 @@ functions {
   * @param b  Parameter of beta distribution
   */
   real coverclass_lpmf(int Y, vector CP, real a, real b) {
-    int n_cls;
+    int n_cls = num_elements(CP) + 1;
     real gamma;
 
-    n_cls = num_elements(CP) + 1;
     if (Y <= 1) {  // 0 or 1
       gamma =  inc_beta(a, b, CP[1]);
     } else if(Y >= 2 && Y < n_cls) {

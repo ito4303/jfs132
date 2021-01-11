@@ -63,31 +63,39 @@ ggplot(df) +
 \includegraphics[width=9cm]{ssm.pdf}
 \end{center}
 
-- 状態方程式 $\symbf{\theta}_t = f(\symbf{\theta}_{t-1}, \symbf{w}_t)$
-- 観測方程式 $y_t = g(\symbf{\theta}_t, v_t)$
+
+
+- 潜在状態の時間変化と、観測過程を分離する。
+    - 状態方程式（システムモデル） $\symbf{\theta}_t = f(\symbf{\theta}_{t-1}, \symbf{w}_t)$
+    - 観測方程式（観測モデル） $y_t = g(\symbf{\theta}_t, v_t)$
 
 
 
 # 植生被度階級データ
 
-## 被度階級
+## 被度階級データ
 
-- 0 < r < + < 1 < 2 < 3 < 4 < 5 など
-- 順序尺度データ
+- 0〜1の連続値を階級データとして扱う。
+    - 0 < r < + < 1 < 2 < 3 < 4 < 5 など
+- 順序尺度データなので、そのまま数値として扱えない。
 
+<!--
+## この講演での被度階級
 
-## 被度階級
+この講演は、以下の定義を用いる
+（単純化のため、0は最小の階級に含める）。
 
-ここでは以下のようにする。
-
-- 0--0.01 -> 1
-- 0.01--0.1 -> 2
-- 0.1--0.25 -> 3
-- 0.25--0.5 -> 4
-- 0.5--0.75 -> 5
-- 0.75--1 -> 6
+- 0--0.01 $\rightarrow$ 1
+- 0.01--0.1 $\rightarrow$ 2
+- 0.1--0.25 $\rightarrow$ 3
+- 0.25--0.5 $\rightarrow$ 4
+- 0.5--0.75 $\rightarrow$ 5
+- 0.75--1 $\rightarrow$ 6
+-->
 
 ## ベータ分布
+
+もともとの被度は0〜1の連続値なので、ベータ分布でモデル化することが多い。
 
 $$
 y \sim \symup{Beta}(\alpha, \beta)
@@ -97,9 +105,10 @@ $$
 $$
 y \sim \symup{Beta}\left(\frac{\mu}{\delta}-\mu,\frac{(1-\mu)(1-\delta)}{\delta}\right)
 $$
-$\delta$はもともと、pin-point法による被度測定における方形区内の分布相関 (Damgaard 2012) 
 
-しかし、被度測定における不確実性とも解釈可能。
+被度階級のモデリングでは、$\delta$はpin-point法による被度測定における方形区内の分布相関 (Damgaard 2012) 。
+
+しかし、被度測定における不確実性とも解釈可能（ただし明示的な観測誤差ではない）。
 
 ## ベータ分布($\mu$=0.5のとき) {#beta_distribution1}
 
@@ -131,7 +140,7 @@ ggplot(df, aes(x = Cover, y = Density, color = delta)) +
            label = bquote(delta == .(delta[4])), color = colors[4]) +
   annotate("text", x = 1, y = 4, hjust = 1, size = 6,
            label = bquote(delta == .(delta[5])), color = colors[5]) +
-  theme_gray(base_family = "Helvetica", base_size = 24) +
+  theme_bw(base_family = "Helvetica", base_size = 24) +
   theme(legend.position = "none")
 ```
 
@@ -163,7 +172,7 @@ ggplot(df, aes(x = Cover, y = Density, color = delta)) +
            label = bquote(delta == .(delta[4])), color = colors[4]) +
   annotate("text", x = 0.5, y = 3, hjust = 0, size = 6,
            label = bquote(delta == .(delta[5])), color = colors[5]) +
-  theme_gray(base_family = "Helvetica", base_size = 24) +
+  theme_bw(base_family = "Helvetica", base_size = 24) +
   theme(legend.position = "none")
 ```
 
@@ -171,7 +180,9 @@ ggplot(df, aes(x = Cover, y = Density, color = delta)) +
 
 今回は以下のように定義する。
 
-1: 0–0.01 (0を含む), 2: 0.01–0.1, 3: 0.1–0.25, 4: 0.25–0.5, 5: 0.5–0.75, 6: 0.75–1
+1: 0–0.01 (0を含む), 2: 0.01–0.1, 3: 0.1–0.25,
+
+4: 0.25–0.5, 5: 0.5–0.75, 6: 0.75–1
 
 $\delta$を変化させたとき、平均被度に対して、各被度階級が選ばれる確率を図示する。
 
@@ -254,6 +265,20 @@ sim_cover_prob(delta = 0.2)
 sim_cover_prob(delta = 0.4)
 ```
 
+## 観測値が得られる確率
+
+\begin{align*}
+Y_t &\sim \mathrm{Categorical}(\Pr(Y_t = i \mid \mu_t, \delta)), \; i \in {1,\dots,6} \\
+\Pr(Y_t = 1 \mid \mu_t, \delta) &=  I\left(k_1, \frac{\mu_t}{\delta}-\mu_t,\frac{(1-\mu_t)(1-\delta)}{\delta}\right) \\
+\Pr(Y_t = i \mid \mu_t, \delta) &= I\left(k_i,\frac{\mu_t}{\delta}-\mu_t,\frac{(1-\mu_t)(1-\delta)}{\delta}\right) \\
+   & - I\left(k_{i-1},\frac{\mu_t}{\delta}-\mu_t,\frac{(1-\mu_t)(1-\delta)}{\delta}\right), \; i \in {2,\dots,5} \\
+\Pr(Y_t = 6 \mid \mu_t, \delta) &= 1 - I\left(k_5,\frac{\mu_t}{\delta}-\mu_t,\frac{(1-\mu_t)(1-\delta)}{\delta}\right)
+\end{align*}
+
+$I$は正則化不完全ベータ関数, $k_i$は階級の境界値
+
+
+
 ## 模擬データ {#simdata1}
 
 ```{r sim1_datagen}
@@ -277,7 +302,7 @@ set.seed(1234)
 y <- cover_class(p, delta, N)
 ```
 
-- 被度 = 0.6
+- 平均被度$\mu$ = 0.6
 - $\delta$ = 0.05 とする。
 - 10回測定する($N = 10$)。
 
@@ -287,7 +312,45 @@ y <- cover_class(p, delta, N)
 print(y)
 ```
 
-## モデルへのあてはめ {#fit_1}
+## Stanによるモデリング
+
+与えられたベータ分布のパラメータ(a, b)に対して、
+指定された被度階級が観測される確率を求める関数を定義する。
+
+```
+  real coverclass_lpmf(int Y, vector CP, real a, real b) {
+    int n_cls = num_elements(CP) + 1;
+    real gamma;
+
+    if (Y <= 1) {  // 0 or 1
+      gamma =  inc_beta(a, b, CP[1]);
+    } else if(Y >= 2 && Y < n_cls) {
+      gamma = inc_beta(a, b, CP[Y])
+              - inc_beta(a, b, CP[Y - 1]);
+    } else {
+      gamma = 1 - inc_beta(a, b, CP[n_cls - 1]);
+    }
+    return bernoulli_lpmf(1 | gamma);
+  }
+```
+
+## Stanによるモデリング
+
+モデルブロック
+
+model {
+  // Observation
+  {
+    real a = mu / delta - mu;
+    real b = (1 - mu) * (1 - delta) / delta;
+
+    for (n in 1:N)
+      Y[n] ~ coverclass(CP, a, b);
+  }
+}
+
+
+## あてはめ結果
 
 ```{r sim1_fit, include=FALSE}
 output_file <- "fit1.RDS"
@@ -313,8 +376,13 @@ fit1$print(c("mu", "delta"))
 
 ## モデルの拡張
 
-- Zero-inflation
-- 測定誤差
+今回は扱わないが、以下のような拡張が可能
+
+- 被度0を組み込む
+    - Zero過剰モデル (Herpigny & Gosselin 2015)
+    - 明示的な検出誤差 (Irvine et al. 2019)
+- 明示的な測定誤差
+    - 被度階級を誤る過程を明示的にモデル化 (Irvine et al. 2019)
 
 # 植生被度階級データの状態空間モデリング
 
@@ -366,9 +434,9 @@ ggplot(df) +
   theme(legend.position = "bottom")
 ```
 
-## System Model
+## 状態空間モデル
 
-潜在状態$\theta$の時間変化
+システムモデル
 
 \begin{align*}
 \mathrm{logit}(\mu_t) &= \theta_t \\
@@ -376,21 +444,17 @@ ggplot(df) +
 \epsilon_t &\sim \mathrm{Normal}(0, \sigma^2)
 \end{align*}
 
-$\mu$は、被度（ベータ分布）の平均値
 
-## Observation Model
+観測モデル
 
 \begin{align*}
-Y_t &\sim \mathrm{Categorical}(\Pr(Y_t = i \mid \mu_t, \delta)), \; i \in {1,\dots,6} \\
-\Pr(Y_t = 1 \mid \mu_t, \delta) &=  I\left(k_1, \frac{\mu_t}{\delta}-\mu_t,\frac{(1-\mu_t)(1-\delta)}{\delta}\right) \\
-\Pr(Y_t = i \mid \mu_t, \delta) &= I\left(k_i,\frac{\mu_t}{\delta}-\mu_t,\frac{(1-\mu_t)(1-\delta)}{\delta}\right) \\
-   & - I\left(k_{i-1},\frac{\mu_t}{\delta}-\mu_t,\frac{(1-\mu_t)(1-\delta)}{\delta}\right), \; i \in {2,\dots,5} \\
-\Pr(Y_t = 6 \mid \mu_t, \delta) &= 1 - I\left(k_5,\frac{\mu_t}{\delta}-\mu_t,\frac{(1-\mu_t)(1-\delta)}{\delta}\right)
+Y_t &\sim \mathrm{Categorical}(\Pr(Y_t = i \mid \mu_t, \delta)), \; i \in {1,\dots,6}
 \end{align*}
 
-$I$は正則化不完全ベータ関数, $k_i$は階級の境界値
 
-## Stan
+$\delta$は不変とする。
+
+## あてはめ結果
 
 ```{r sim2_fit, include=FALSE}
 output_file <- "fit2.RDS"
@@ -424,8 +488,7 @@ ppc_rootogram(y, yrep) +
 ```
 
 
-## Plot
-
+## 平均被度の平滑化分布
 
 ```{r sim2_plot}
 mu_summary <- fit2$summary("mu")
@@ -448,7 +511,8 @@ ggplot(df) +
   theme(legend.position = "bottom")
 ```
 
-## Trend model
+
+## トレンドモデル
 
 潜在状態$\theta$は、傾きがわずかに変化するとする（2階差分）
 
@@ -476,7 +540,7 @@ if (file.exists(output_file)) {
 }
 ```
 
-## Fit
+## あてはめ結果
 
 ```{r sim3_summary, echo=TRUE}
 fit3$print(c("delta", "sigma"))
@@ -490,7 +554,7 @@ ppc_rootogram(y, yrep) +
   theme_classic(base_family = "Helvetica", base_size = 24)
 ```
 
-## Plot
+## 平均被度の平滑化分布
 
 ```{r sim3_plot}
 mu_summary <- fit3$summary("mu")
@@ -516,7 +580,8 @@ ggplot(df) +
 
 # まとめ
 
-
+- 被度階級データも、時系列データも、単純には扱いにくい。
+- しかし、適切にモデル化することで、うまく扱うことができる。
 
 
 
