@@ -1,0 +1,37 @@
+%% PDFメタデータの文字化け防止
+% https://blog.miz-ar.info/2015/09/latex-hyperref-tips/
+% https://tex.stackexchange.com/questions/24445/hyperref-lualatex-and-unicode-bookmarks-issue-garbled-page-numbers-in-ar-for-l
+\hypersetup{%
+  pdfencoding=auto
+}
+
+%% フォントの設定
+%% https://org-technology.com/posts/lualatex-unicode-math.html
+\setmainfont[Ligatures=TeX]{TeX Gyre Heros}
+\setsansfont[Scale=1.0]{TeX Gyre Heros}
+\usepackage{unicode-math}
+\unimathsetup{math-style=ISO,bold-style=ISO}
+\setmathfont[Scale=MatchLowercase]{FiraMath-Regular.otf}
+\setmathrm[Scale=MatchLowercase]{FiraMath-Regular.otf}
+
+%% 日本語フォントの設定
+\usepackage[deluxe,noto-otf]{luatexja-preset}
+\renewcommand{\kanjifamilydefault}{\gtdefault}
+
+%% change fontsize of R code
+% https://stackoverflow.com/questions/38323331/code-chunk-font-size-in-beamer-with-knitr-and-latex
+%\let\oldShaded\Shaded
+%\let\endoldShaded\endShaded
+%\renewenvironment{Shaded}{\footnotesize\oldShaded}{\endoldShaded}
+
+%% change fontsize for output
+\let\oldverbatim\verbatim
+\let\endoldverbatim\endverbatim
+\renewenvironment{verbatim}{\footnotesize\oldverbatim}{\endoldverbatim}
+
+%% Title font size
+\setbeamerfont{title}{size=\Huge, series=\bfseries}
+\setbeamerfont{section title}{size=\LARGE, series=\bfseries}
+\setbeamerfont{frametitle}{size=\Large, series=\bfseries}
+
+

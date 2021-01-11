@@ -1,0 +1,14 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.RDS
+
+# Cache files
+*_cache
+*_files
+
+# TeX files
+*.log
+*.aux
+*.vrb
