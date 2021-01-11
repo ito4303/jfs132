@@ -317,51 +317,37 @@ print(y)
 与えられたベータ分布のパラメータ(a, b)に対して、
 指定された被度階級が観測される確率を求める関数を定義する。
 
+```{r, message=FALSE}
+model_file <- "cover.stan"
+s <- scan(model_file, what = character(), sep = "\n")
+cat(s[c(5, 15:27)], sep = "\n")
 ```
-  real coverclass_lpmf(int Y, vector CP, real a, real b) {
-    int n_cls = num_elements(CP) + 1;
-    real gamma;
 
-    if (Y <= 1) {  // 0 or 1
-      gamma =  inc_beta(a, b, CP[1]);
-    } else if(Y >= 2 && Y < n_cls) {
-      gamma = inc_beta(a, b, CP[Y])
-              - inc_beta(a, b, CP[Y - 1]);
-    } else {
-      gamma = 1 - inc_beta(a, b, CP[n_cls - 1]);
-    }
-    return bernoulli_lpmf(1 | gamma);
-  }
-```
 
 ## Stanによるモデリング
 
 モデルブロック
 
-model {
-  // Observation
-  {
-    real a = mu / delta - mu;
-    real b = (1 - mu) * (1 - delta) / delta;
+```{r}
+cat(s[59:67], sep = "\n")
+```
 
-    for (n in 1:N)
-      Y[n] ~ coverclass(CP, a, b);
-  }
-}
+
 
 
 ## あてはめ結果
 
 ```{r sim1_fit, include=FALSE}
 output_file <- "fit1.RDS"
-if (file.exists(output_file)) {
+if (file.exists(output_file) &
+    file.mtime(output_file) < file.mtime(model_file) ) {
   fit1 <- readRDS(output_file)
 } else {
   data <- list(N_cls = length(k) + 1,
                N = N,
                Y = y,
                CP = k)
-  model <- cmdstan_model("cover.stan")
+  model <- cmdstan_model(model_file)
   fit1 <- model$sample(data = data,
                        chains = 4, parallel_chains = 4,
                        iter_sampling = 2000, iter_warmup = 2000,
@@ -457,15 +443,17 @@ $\delta$は不変とする。
 ## あてはめ結果
 
 ```{r sim2_fit, include=FALSE}
+model_file <- "cover_ssm.stan"
 output_file <- "fit2.RDS"
-if (file.exists(output_file)) {
+if (file.exists(output_file) &
+    (file.mtime(output_file) < file.mtime(model_file))) {
   fit2 <- readRDS(output_file)
 } else {
   data <- list(N_cls = length(k) + 1,
                N_t = Nt,
                Y = y,
                CP = k)
-  model <- cmdstan_model("cover_ssm.stan")
+  model <- cmdstan_model(model_file)
   fit2 <- model$sample(data = data,
                        chains = 4, parallel_chains = 4,
                        iter_sampling = 2000, iter_warmup = 2000,
@@ -523,15 +511,17 @@ ggplot(df) +
 \end{align*}
 
 ```{r sim3_fit, include=FALSE}
+model_file <- "cover_ssm2.stan"
 output_file <- "fit3.RDS"
-if (file.exists(output_file)) {
+if (file.exists(output_file) &
+    (file.mtime(output_file) < file.mtime(model_file))) {
   fit3 <- readRDS(output_file)
 } else {
   data <- list(N_cls = length(k) + 1,
                N_t = Nt,
                Y = y,
                CP = k)
-  model <- cmdstan_model("cover_ssm2.stan")
+  model <- cmdstan_model(model_file)
   fit3 <- model$sample(data = data,
                        chains = 4, parallel_chains = 4,
                        iter_sampling = 2000, iter_warmup = 2000,
