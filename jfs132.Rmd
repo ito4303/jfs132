@@ -23,6 +23,13 @@ library(posterior)
 library(bayesplot)
 ```
 
+## コード置き場
+
+本日のコードは以下の場所にあります。
+
+https://github.com/ito4303/jfs132
+
+
 ## 目次
 
 \tableofcontents[hideallsubsections]
@@ -96,6 +103,7 @@ ggplot(df) +
 ## ベータ分布
 
 もともとの被度は0〜1の連続値なので、ベータ分布でモデル化することが多い。
+被度の値は、ベータ分布から確率的に抽出されるとする。
 
 $$
 y \sim \symup{Beta}(\alpha, \beta)
