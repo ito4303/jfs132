@@ -23,16 +23,16 @@ library(posterior)
 library(bayesplot)
 ```
 
-## コード置き場
+## 本日の内容
+
+\tableofcontents[hideallsubsections]
+
+
+## 本日のコード
 
 本日のコードは以下の場所にあります。
 
 https://github.com/ito4303/jfs132
-
-
-## 目次
-
-\tableofcontents[hideallsubsections]
 
 
 # 状態空間モデル
