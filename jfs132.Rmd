@@ -58,10 +58,23 @@ df <- data.frame(Time = rep(1:Nt, N),
 ggplot(df) +
   geom_line(aes(x = Time, y = Y, group = group),
             colour = df$colour, alpha = 0.67) +
-  theme_classic(base_family = "Helvetica", base_size = 18)
+  theme_classic(base_family = "Helvetica", base_size = 18) +
+  theme(panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA))
 ```
 
-単純に時間を説明変数にして回帰すると、ランダムウォークでも多くの場合「ゆーい」になる。
+単純に時間を説明変数にして線形回帰すると、ランダムウォークでも多くの場合「ゆーい」になる。
+
+## 時系列分析
+
+\begin{spacing}{1.5}
+物理的に時間の関数になることがわかっている場合などは別として、 \\
+{\Large 時系列データを正しく解析するには\textbf{時系列分析}が必要になる。}
+\end{spacing}
+
+\begin{spacing}{1.5}
+本講演では、\textbf{状態空間モデル}による時系列分析をあつかう。
+\end{spacing}
 
 ## 状態空間モデル
 
@@ -149,7 +162,9 @@ ggplot(df, aes(x = Cover, y = Density, color = delta)) +
   annotate("text", x = 1, y = 4, hjust = 1, size = 6,
            label = bquote(delta == .(delta[5])), color = colors[5]) +
   theme_bw(base_family = "Helvetica", base_size = 24) +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA))
 ```
 
 ## ベータ分布($\mu$=0.05のとき) {#beta_distribution2}
@@ -181,7 +196,9 @@ ggplot(df, aes(x = Cover, y = Density, color = delta)) +
   annotate("text", x = 0.5, y = 3, hjust = 0, size = 6,
            label = bquote(delta == .(delta[5])), color = colors[5]) +
   theme_bw(base_family = "Helvetica", base_size = 24) +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA))
 ```
 
 ## 被度階級 {#cover_class}
@@ -232,7 +249,9 @@ sim_cover_prob <- function(delta = c(0.001, 0.01, 0.05, 0.1),
     labs(x = "Mean cover", y = "Probability") +
     scale_color_manual(values = colorblind_pal()(8)[c(1, 2, 3, 4, 6, 7)]) +
     facet_wrap(~delta) +
-    theme_bw(base_family = "Helvetica", base_size = 24)
+    theme_bw(base_family = "Helvetica", base_size = 24) +
+    theme(panel.background = element_rect(fill = "transparent", color = NA),
+          plot.background = element_rect(fill = "transparent", color = NA))
   print(plt)
 }
 ```
@@ -340,9 +359,6 @@ cat(s[c(5, 15:27)], sep = "\n")
 cat(s[59:67], sep = "\n")
 ```
 
-
-
-
 ## あてはめ結果
 
 ```{r sim1_fit, include=FALSE}
@@ -425,7 +441,9 @@ ggplot(df) +
   scale_colour_manual(name = "", values = c("red", "blue")) + 
   labs(x = "Time", y = "Cover") +
   theme_bw(base_family = "Helvetica", base_size = 24) +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom",
+        panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA))
 ```
 
 ## 状態空間モデル
@@ -480,7 +498,9 @@ fit2$print(c("delta", "sigma"))
 ```{r sim2_ppc}
 yrep <- posterior::as_draws_matrix(fit2$draws(variables = "yrep"))
 ppc_rootogram(y, yrep) +
-  theme_classic(base_family = "Helvetica", base_size = 24)
+  theme_classic(base_family = "Helvetica", base_size = 24) +
+  theme(panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA))
 ```
 
 
@@ -504,7 +524,9 @@ ggplot(df) +
   scale_colour_manual(name = "", values = c("red", "black", "blue")) + 
   labs(x = "Time", y = "Cover") +
   theme_bw(base_family = "Helvetica", base_size = 24) +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom",
+        panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA))
 ```
 
 
@@ -549,7 +571,9 @@ fit3$print(c("delta", "sigma"))
 ```{r sim3_ppc}
 yrep <- posterior::as_draws_matrix(fit3$draws(variables = "yrep"))
 ppc_rootogram(y, yrep) +
-  theme_classic(base_family = "Helvetica", base_size = 24)
+  theme_classic(base_family = "Helvetica", base_size = 24) +
+  theme(panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA))
 ```
 
 ## 平均被度の平滑化分布
@@ -572,7 +596,9 @@ ggplot(df) +
   scale_colour_manual(name = "", values = c("red", "black", "blue")) + 
   labs(x = "Time", y = "Cover") +
   theme_bw(base_family = "Helvetica", base_size = 24) +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom",
+        panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA))
 ```
 
 
