@@ -115,19 +115,23 @@ ggplot(df) +
 
 ## ベータ分布
 
-もともとの被度は0〜1の連続値なので、ベータ分布でモデル化することが多い。
-被度の値は、ベータ分布から確率的に抽出されるとする。
+0〜1の連続値の被度は、ベータ分布でモデル化することが多い。
+値が、ベータ分布から確率的に抽出されるとする。
 
-$$
-y \sim \symup{Beta}(\alpha, \beta)
-$$
-平均$\mu$を使ったパラメータ化
+\begin{align*}
+y \sim \symup{Beta}(\alpha, \beta) \\
+(\alpha > 0, \beta > 0)
+\end{align*}
 
-$$
+## 平均を使ったパラメータ化
+
+ベータ分布の平均を$\mu (0 < \mu < 1)$として:
+
+\begin{align*}
 y \sim \symup{Beta}\left(\frac{\mu}{\delta}-\mu,\frac{(1-\mu)(1-\delta)}{\delta}\right)
-$$
+\end{align*}
 
-被度階級のモデリングでは、$\delta$はpin-point法による被度測定における方形区内の分布相関 (Damgaard 2012) 。
+被度階級のモデリングでは、$\delta (0 < \delta < 1)$はpin-point法による被度測定における方形区内の分布相関 (Damgaard 2012) 。
 
 しかし、被度測定における不確実性とも解釈可能（ただし明示的な観測誤差ではない）。
 
