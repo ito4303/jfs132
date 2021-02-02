@@ -1,7 +1,7 @@
 ---
 title: "植生被度階級データの状態空間モデリング"
 author: "伊東宏樹"
-date: '2021-03-21'
+date: '2021-03-20'
 output:
   beamer_presentation:
     latex_engine: lualatex
@@ -68,7 +68,7 @@ ggplot(df) +
 ## 時系列分析
 
 \begin{spacing}{1.5}
-物理的に時間の関数になることがわかっている場合などはともかく、 \\
+物理的に時間の関数になることがわかっているような時系列データなどはともかく、 \\
 {\Large 自己相関のある時系列データを正しく解析するには\textbf{時系列分析}が必要になる。}
 \end{spacing}
 
