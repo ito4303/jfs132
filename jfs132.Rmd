@@ -1,7 +1,7 @@
 ---
 title: "植生被度階級データの状態空間モデリング"
 author: "伊東宏樹"
-date: '2021-03-21'
+date: '2021-03-20'
 output:
   beamer_presentation:
     latex_engine: lualatex
@@ -23,9 +23,16 @@ library(posterior)
 library(bayesplot)
 ```
 
-## 目次
+## 本日の内容
 
 \tableofcontents[hideallsubsections]
+
+
+## 本日のコード
+
+本日のコードは以下の場所にあります。
+
+https://github.com/ito4303/jfs132
 
 
 # 状態空間モデル
@@ -51,10 +58,23 @@ df <- data.frame(Time = rep(1:Nt, N),
 ggplot(df) +
   geom_line(aes(x = Time, y = Y, group = group),
             colour = df$colour, alpha = 0.67) +
-  theme_classic(base_family = "Helvetica", base_size = 18)
+  theme_classic(base_family = "Helvetica", base_size = 18) +
+  theme(panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA))
 ```
 
-単純に時間を説明変数にして回帰すると、ランダムウォークでも多くの場合「ゆーい」になる。
+単純に時間を説明変数にして線形回帰すると、ランダムウォークでも多くの場合「ゆーい」になる。
+
+## 時系列分析
+
+\begin{spacing}{1.5}
+物理的に時間の関数になることがわかっているような時系列データなどはともかく、 \\
+{\Large 自己相関のある時系列データを正しく解析するには\textbf{時系列分析}が必要になる。}
+\end{spacing}
+
+\begin{spacing}{1.5}
+本講演では、\textbf{状態空間モデル}による時系列分析をあつかう。
+\end{spacing}
 
 ## 状態空間モデル
 
@@ -95,18 +115,23 @@ ggplot(df) +
 
 ## ベータ分布
 
-もともとの被度は0〜1の連続値なので、ベータ分布でモデル化することが多い。
+0〜1の連続値の被度は、ベータ分布でモデル化することが多い。
+値が、ベータ分布から確率的に抽出されるとする。
 
-$$
-y \sim \symup{Beta}(\alpha, \beta)
-$$
-平均$\mu$を使ったパラメータ化
+\begin{align*}
+y \sim \symup{Beta}(\alpha, \beta) \\
+(\alpha > 0, \beta > 0)
+\end{align*}
 
-$$
+## 平均を使ったパラメータ化
+
+ベータ分布の平均を$\mu (0 < \mu < 1)$として:
+
+\begin{align*}
 y \sim \symup{Beta}\left(\frac{\mu}{\delta}-\mu,\frac{(1-\mu)(1-\delta)}{\delta}\right)
-$$
+\end{align*}
 
-被度階級のモデリングでは、$\delta$はpin-point法による被度測定における方形区内の分布相関 (Damgaard 2012) 。
+被度階級のモデリングでは、$\delta (0 < \delta < 1)$はpin-point法による被度測定における方形区内の分布相関 (Damgaard 2012) 。
 
 しかし、被度測定における不確実性とも解釈可能（ただし明示的な観測誤差ではない）。
 
@@ -141,7 +166,9 @@ ggplot(df, aes(x = Cover, y = Density, color = delta)) +
   annotate("text", x = 1, y = 4, hjust = 1, size = 6,
            label = bquote(delta == .(delta[5])), color = colors[5]) +
   theme_bw(base_family = "Helvetica", base_size = 24) +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA))
 ```
 
 ## ベータ分布($\mu$=0.05のとき) {#beta_distribution2}
@@ -173,7 +200,9 @@ ggplot(df, aes(x = Cover, y = Density, color = delta)) +
   annotate("text", x = 0.5, y = 3, hjust = 0, size = 6,
            label = bquote(delta == .(delta[5])), color = colors[5]) +
   theme_bw(base_family = "Helvetica", base_size = 24) +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA))
 ```
 
 ## 被度階級 {#cover_class}
@@ -224,7 +253,9 @@ sim_cover_prob <- function(delta = c(0.001, 0.01, 0.05, 0.1),
     labs(x = "Mean cover", y = "Probability") +
     scale_color_manual(values = colorblind_pal()(8)[c(1, 2, 3, 4, 6, 7)]) +
     facet_wrap(~delta) +
-    theme_bw(base_family = "Helvetica", base_size = 24)
+    theme_bw(base_family = "Helvetica", base_size = 24) +
+    theme(panel.background = element_rect(fill = "transparent", color = NA),
+          plot.background = element_rect(fill = "transparent", color = NA))
   print(plt)
 }
 ```
@@ -317,51 +348,34 @@ print(y)
 与えられたベータ分布のパラメータ(a, b)に対して、
 指定された被度階級が観測される確率を求める関数を定義する。
 
+```{r, message=FALSE}
+model_file <- "cover.stan"
+s <- scan(model_file, what = character(), sep = "\n")
+cat(s[c(5, 15:27)], sep = "\n")
 ```
-  real coverclass_lpmf(int Y, vector CP, real a, real b) {
-    int n_cls = num_elements(CP) + 1;
-    real gamma;
 
-    if (Y <= 1) {  // 0 or 1
-      gamma =  inc_beta(a, b, CP[1]);
-    } else if(Y >= 2 && Y < n_cls) {
-      gamma = inc_beta(a, b, CP[Y])
-              - inc_beta(a, b, CP[Y - 1]);
-    } else {
-      gamma = 1 - inc_beta(a, b, CP[n_cls - 1]);
-    }
-    return bernoulli_lpmf(1 | gamma);
-  }
-```
 
 ## Stanによるモデリング
 
 モデルブロック
 
-model {
-  // Observation
-  {
-    real a = mu / delta - mu;
-    real b = (1 - mu) * (1 - delta) / delta;
-
-    for (n in 1:N)
-      Y[n] ~ coverclass(CP, a, b);
-  }
-}
-
+```{r}
+cat(s[59:67], sep = "\n")
+```
 
 ## あてはめ結果
 
 ```{r sim1_fit, include=FALSE}
 output_file <- "fit1.RDS"
-if (file.exists(output_file)) {
+if (file.exists(output_file) &
+    file.mtime(output_file) < file.mtime(model_file) ) {
   fit1 <- readRDS(output_file)
 } else {
   data <- list(N_cls = length(k) + 1,
                N = N,
                Y = y,
                CP = k)
-  model <- cmdstan_model("cover.stan")
+  model <- cmdstan_model(model_file)
   fit1 <- model$sample(data = data,
                        chains = 4, parallel_chains = 4,
                        iter_sampling = 2000, iter_warmup = 2000,
@@ -431,7 +445,9 @@ ggplot(df) +
   scale_colour_manual(name = "", values = c("red", "blue")) + 
   labs(x = "Time", y = "Cover") +
   theme_bw(base_family = "Helvetica", base_size = 24) +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom",
+        panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA))
 ```
 
 ## 状態空間モデル
@@ -457,15 +473,17 @@ $\delta$は不変とする。
 ## あてはめ結果
 
 ```{r sim2_fit, include=FALSE}
+model_file <- "cover_ssm.stan"
 output_file <- "fit2.RDS"
-if (file.exists(output_file)) {
+if (file.exists(output_file) &
+    (file.mtime(output_file) < file.mtime(model_file))) {
   fit2 <- readRDS(output_file)
 } else {
   data <- list(N_cls = length(k) + 1,
                N_t = Nt,
                Y = y,
                CP = k)
-  model <- cmdstan_model("cover_ssm.stan")
+  model <- cmdstan_model(model_file)
   fit2 <- model$sample(data = data,
                        chains = 4, parallel_chains = 4,
                        iter_sampling = 2000, iter_warmup = 2000,
@@ -484,7 +502,9 @@ fit2$print(c("delta", "sigma"))
 ```{r sim2_ppc}
 yrep <- posterior::as_draws_matrix(fit2$draws(variables = "yrep"))
 ppc_rootogram(y, yrep) +
-  theme_classic(base_family = "Helvetica", base_size = 24)
+  theme_classic(base_family = "Helvetica", base_size = 24) +
+  theme(panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA))
 ```
 
 
@@ -508,7 +528,9 @@ ggplot(df) +
   scale_colour_manual(name = "", values = c("red", "black", "blue")) + 
   labs(x = "Time", y = "Cover") +
   theme_bw(base_family = "Helvetica", base_size = 24) +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom",
+        panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA))
 ```
 
 
@@ -523,15 +545,17 @@ ggplot(df) +
 \end{align*}
 
 ```{r sim3_fit, include=FALSE}
+model_file <- "cover_ssm2.stan"
 output_file <- "fit3.RDS"
-if (file.exists(output_file)) {
+if (file.exists(output_file) &
+    (file.mtime(output_file) < file.mtime(model_file))) {
   fit3 <- readRDS(output_file)
 } else {
   data <- list(N_cls = length(k) + 1,
                N_t = Nt,
                Y = y,
                CP = k)
-  model <- cmdstan_model("cover_ssm2.stan")
+  model <- cmdstan_model(model_file)
   fit3 <- model$sample(data = data,
                        chains = 4, parallel_chains = 4,
                        iter_sampling = 2000, iter_warmup = 2000,
@@ -551,7 +575,9 @@ fit3$print(c("delta", "sigma"))
 ```{r sim3_ppc}
 yrep <- posterior::as_draws_matrix(fit3$draws(variables = "yrep"))
 ppc_rootogram(y, yrep) +
-  theme_classic(base_family = "Helvetica", base_size = 24)
+  theme_classic(base_family = "Helvetica", base_size = 24) +
+  theme(panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA))
 ```
 
 ## 平均被度の平滑化分布
@@ -574,7 +600,9 @@ ggplot(df) +
   scale_colour_manual(name = "", values = c("red", "black", "blue")) + 
   labs(x = "Time", y = "Cover") +
   theme_bw(base_family = "Helvetica", base_size = 24) +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom",
+        panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA))
 ```
 
 
