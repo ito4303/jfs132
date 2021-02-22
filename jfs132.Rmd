@@ -60,7 +60,8 @@ ggplot(df) +
             colour = df$colour, alpha = 0.67) +
   theme_classic(base_family = "Helvetica", base_size = 18) +
   theme(panel.background = element_rect(fill = "transparent", color = NA),
-        plot.background = element_rect(fill = "transparent", color = NA))
+        plot.background = element_rect(fill = "transparent", color = NA),
+        legend.background = element_rect(fill = "transparent", color = NA))
 ```
 
 単純に時間を説明変数にして線形回帰すると、ランダムウォークでも多くの場合「ゆーい」になる。
@@ -168,7 +169,8 @@ ggplot(df, aes(x = Cover, y = Density, color = delta)) +
   theme_bw(base_family = "Helvetica", base_size = 24) +
   theme(legend.position = "none",
         panel.background = element_rect(fill = "transparent", color = NA),
-        plot.background = element_rect(fill = "transparent", color = NA))
+        plot.background = element_rect(fill = "transparent", color = NA),
+        legend.background = element_rect(fill = "transparent", color = NA))
 ```
 
 ## ベータ分布($\mu$=0.05のとき) {#beta_distribution2}
@@ -202,7 +204,8 @@ ggplot(df, aes(x = Cover, y = Density, color = delta)) +
   theme_bw(base_family = "Helvetica", base_size = 24) +
   theme(legend.position = "none",
         panel.background = element_rect(fill = "transparent", color = NA),
-        plot.background = element_rect(fill = "transparent", color = NA))
+        plot.background = element_rect(fill = "transparent", color = NA),
+        legend.background = element_rect(fill = "transparent", color = NA))
 ```
 
 ## 被度階級 {#cover_class}
@@ -255,7 +258,8 @@ sim_cover_prob <- function(delta = c(0.001, 0.01, 0.05, 0.1),
     facet_wrap(~delta) +
     theme_bw(base_family = "Helvetica", base_size = 24) +
     theme(panel.background = element_rect(fill = "transparent", color = NA),
-          plot.background = element_rect(fill = "transparent", color = NA))
+          plot.background = element_rect(fill = "transparent", color = NA),
+          legend.background = element_rect(fill = "transparent", color = NA))
   print(plt)
 }
 ```
@@ -343,7 +347,7 @@ y <- cover_class(p, delta, N)
 print(y)
 ```
 
-## Stanによるモデリング
+## Stanによるモデリング(1)
 
 与えられたベータ分布のパラメータ(a, b)に対して、
 指定された被度階級が観測される確率を求める関数を定義する。
@@ -355,7 +359,7 @@ cat(s[c(5, 15:27)], sep = "\n")
 ```
 
 
-## Stanによるモデリング
+## Stanによるモデリング(2)
 
 モデルブロック
 
@@ -368,7 +372,7 @@ cat(s[59:67], sep = "\n")
 ```{r sim1_fit, include=FALSE}
 output_file <- "fit1.RDS"
 if (file.exists(output_file) &
-    file.mtime(output_file) < file.mtime(model_file) ) {
+    file.mtime(output_file) > file.mtime(model_file) ) {
   fit1 <- readRDS(output_file)
 } else {
   data <- list(N_cls = length(k) + 1,
@@ -403,13 +407,14 @@ fit1$print(c("mu", "delta"))
 ## 模擬データ
 
 ```{r sim2_data}
-set.seed(4)
+set.seed(1)
 Nt <- 30
-sigma <- 0.5
+sigma <- 0.1
 theta <- rep(0, Nt)
 theta[1] <- log(0.005 / (1 - 0.005))
-for (t in 2:Nt)
-  theta[t] <- rnorm(1, theta[t - 1], sigma)
+theta[2] <- log(0.0055 / (1 - 0.0055))
+for (t in 3:Nt)
+  theta[t] <- rnorm(1, 2 * theta[t - 1] - theta[t - 2], sigma)
 mu <- 1 / (1 + exp(-theta))
 
 # generate class data
@@ -442,12 +447,16 @@ df <- data.frame(time = 1:Nt,
 ggplot(df) +
   geom_line(aes(x = time, y = mu, colour = lab_mu), size = 2) +
   geom_point(aes(x = time, y = Y, colour = lab_Y), size = 3) +
-  scale_colour_manual(name = "", values = c("red", "blue")) + 
+  scale_colour_manual(name = "", values = c("red", "blue"),
+                      guide = guide_legend(override.aes = list(
+                        shape = c(21, NA),
+                        linetype = c(NA, 1)))) +
   labs(x = "Time", y = "Cover") +
   theme_bw(base_family = "Helvetica", base_size = 24) +
   theme(legend.position = "bottom",
         panel.background = element_rect(fill = "transparent", color = NA),
-        plot.background = element_rect(fill = "transparent", color = NA))
+        plot.background = element_rect(fill = "transparent", color = NA),
+        legend.background = element_rect(fill = "transparent", color = NA))
 ```
 
 ## 状態空間モデル
@@ -476,7 +485,7 @@ $\delta$は不変とする。
 model_file <- "cover_ssm.stan"
 output_file <- "fit2.RDS"
 if (file.exists(output_file) &
-    (file.mtime(output_file) < file.mtime(model_file))) {
+    (file.mtime(output_file) > file.mtime(model_file))) {
   fit2 <- readRDS(output_file)
 } else {
   data <- list(N_cls = length(k) + 1,
@@ -487,6 +496,7 @@ if (file.exists(output_file) &
   fit2 <- model$sample(data = data,
                        chains = 4, parallel_chains = 4,
                        iter_sampling = 2000, iter_warmup = 2000,
+                       refresh = 500,
                        adapt_delta = 0.95)
   fit2$save_object(output_file)
 }
@@ -497,18 +507,21 @@ if (file.exists(output_file) &
 fit2$print(c("delta", "sigma"))
 ```
 
-## Posterior Predictive Check
+## 事後予測チェック
 
-```{r sim2_ppc}
+`bayesplot`パッケージの`ppc_rootogram`関数を使用
+
+```{r sim2_ppc, fig.height=5.5}
 yrep <- posterior::as_draws_matrix(fit2$draws(variables = "yrep"))
 ppc_rootogram(y, yrep) +
   theme_classic(base_family = "Helvetica", base_size = 24) +
   theme(panel.background = element_rect(fill = "transparent", color = NA),
-        plot.background = element_rect(fill = "transparent", color = NA))
+        plot.background = element_rect(fill = "transparent", color = NA),
+        legend.background = element_rect(fill = "transparent", color = NA))
 ```
 
 
-## 平均被度の平滑化分布
+## 被度の平均の推定値
 
 ```{r sim2_plot}
 mu_summary <- fit2$summary("mu")
@@ -522,15 +535,21 @@ df <- data.frame(time = 1:Nt, mu = mu, Y = med_cover[y],
 ggplot(df) +
   geom_line(aes(x = time, y = mu, colour = lab_mu), size = 2) +
   geom_point(aes(x = time, y = Y, colour = lab_Y), size = 3) +
-  geom_line(aes(x = time, y = mean, colour = lab_smth), size = 1) +
+  geom_line(aes(x = time, y = mean, colour = lab_smth),
+            linetype = 1, size = 1.5) +
   geom_ribbon(aes(x = time, ymin = q5, ymax = q95), fill = "gray",
               alpha = 0.33) +
-  scale_colour_manual(name = "", values = c("red", "black", "blue")) + 
+  scale_colour_manual(name = "", values = c("red", "black", "blue"),
+                      guide = guide_legend(override.aes = list(
+                        shape = c(19, NA, NA),
+                        linetype = c(NA, 1, 1),
+                        size = c(3, 1.5, 2)))) +
   labs(x = "Time", y = "Cover") +
   theme_bw(base_family = "Helvetica", base_size = 24) +
   theme(legend.position = "bottom",
         panel.background = element_rect(fill = "transparent", color = NA),
-        plot.background = element_rect(fill = "transparent", color = NA))
+        plot.background = element_rect(fill = "transparent", color = NA),
+        legend.background = element_rect(fill = "transparent", color = NA))
 ```
 
 
@@ -548,7 +567,7 @@ ggplot(df) +
 model_file <- "cover_ssm2.stan"
 output_file <- "fit3.RDS"
 if (file.exists(output_file) &
-    (file.mtime(output_file) < file.mtime(model_file))) {
+    (file.mtime(output_file) > file.mtime(model_file))) {
   fit3 <- readRDS(output_file)
 } else {
   data <- list(N_cls = length(k) + 1,
@@ -559,7 +578,8 @@ if (file.exists(output_file) &
   fit3 <- model$sample(data = data,
                        chains = 4, parallel_chains = 4,
                        iter_sampling = 2000, iter_warmup = 2000,
-                       adapt_delta = 0.95, max_treedepth = 20)
+                       refresh = 500,
+                       adapt_delta = 0.99, max_treedepth = 20)
   fit3$save_object(output_file)
 }
 ```
@@ -570,17 +590,18 @@ if (file.exists(output_file) &
 fit3$print(c("delta", "sigma"))
 ```
 
-## Posterior Predictive Check
+## 事後予測チェック
 
-```{r sim3_ppc}
+```{r sim3_ppc, fig.height=5.5}
 yrep <- posterior::as_draws_matrix(fit3$draws(variables = "yrep"))
 ppc_rootogram(y, yrep) +
   theme_classic(base_family = "Helvetica", base_size = 24) +
   theme(panel.background = element_rect(fill = "transparent", color = NA),
-        plot.background = element_rect(fill = "transparent", color = NA))
+        plot.background = element_rect(fill = "transparent", color = NA),
+        legend.background = element_rect(fill = "transparent", color = NA))
 ```
 
-## 平均被度の平滑化分布
+## トレンドモデルによる被度の平均の推定値
 
 ```{r sim3_plot}
 mu_summary <- fit3$summary("mu")
@@ -594,15 +615,21 @@ df <- data.frame(time = 1:Nt, mu = mu, Y = med_cover[y],
 ggplot(df) +
   geom_line(aes(x = time, y = mu, colour = lab_mu), size = 2) +
   geom_point(aes(x = time, y = Y, colour = lab_Y), size = 3) +
-  geom_line(aes(x = time, y = mean, colour = lab_smth), size = 1) +
+  geom_line(aes(x = time, y = mean, colour = lab_smth),
+            linetype = 1, size = 1.5) +
   geom_ribbon(aes(x = time, ymin = q5, ymax = q95), fill = "gray",
               alpha = 0.33) +
-  scale_colour_manual(name = "", values = c("red", "black", "blue")) + 
+  scale_colour_manual(name = "", values = c("red", "black", "blue"),
+                      guide = guide_legend(override.aes = list(
+                        shape = c(19, NA, NA),
+                        linetype = c(NA, 1, 1),
+                        size = c(3, 1.5, 2)))) +
   labs(x = "Time", y = "Cover") +
   theme_bw(base_family = "Helvetica", base_size = 24) +
   theme(legend.position = "bottom",
         panel.background = element_rect(fill = "transparent", color = NA),
-        plot.background = element_rect(fill = "transparent", color = NA))
+        plot.background = element_rect(fill = "transparent", color = NA),
+        legend.background = element_rect(fill = "transparent", color = NA))
 ```
 
 
@@ -610,7 +637,3 @@ ggplot(df) +
 
 - 被度階級データも、時系列データも、単純には扱いにくい。
 - しかし、適切にモデル化することで、うまく扱うことができる。
-
-
-
-
