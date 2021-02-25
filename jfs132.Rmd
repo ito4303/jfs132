@@ -1,12 +1,12 @@
 ---
 title: "植生被度階級データの状態空間モデリング"
-author: "伊東宏樹"
+author: "伊東宏樹（森林総合研究所北海道支所）"
 date: '2021-03-20'
 output:
   beamer_presentation:
     latex_engine: lualatex
     theme: metropolis
-    keep_tex: true
+    keep_tex: false
     slide_level: 2
     includes:
       in_header: header.tex
@@ -86,7 +86,7 @@ ggplot(df) +
 
 
 
-- 潜在状態の時間変化と、観測過程を分離する。
+- 潜在状態の時間変化と、観測過程を分離する（階層化）。
     - 状態方程式（システムモデル） $\symbf{\theta}_t = f(\symbf{\theta}_{t-1}, \symbf{w}_t)$
     - 観測方程式（観測モデル） $y_t = g(\symbf{\theta}_t, v_t)$
 
@@ -97,22 +97,15 @@ ggplot(df) +
 ## 被度階級データ
 
 - 0〜1の連続値を階級データとして扱う。
-    - 0 < r < + < 1 < 2 < 3 < 4 < 5 など
+    - 例
+        - 0 → 0
+        - 0〜0.01 → +
+        - 0.01〜0.1 → 1
+        - 0.1〜0.25 → 2
+        - 0.25〜0.5 → 3
+        - 0.5〜0.75 → 4
+        - 0.75〜1 → 5
 - 順序尺度データなので、そのまま数値として扱えない。
-
-<!--
-## この講演での被度階級
-
-この講演は、以下の定義を用いる
-（単純化のため、0は最小の階級に含める）。
-
-- 0--0.01 $\rightarrow$ 1
-- 0.01--0.1 $\rightarrow$ 2
-- 0.1--0.25 $\rightarrow$ 3
-- 0.25--0.5 $\rightarrow$ 4
-- 0.5--0.75 $\rightarrow$ 5
-- 0.75--1 $\rightarrow$ 6
--->
 
 ## ベータ分布
 
@@ -449,14 +442,15 @@ ggplot(df) +
   geom_point(aes(x = time, y = Y, colour = lab_Y), size = 3) +
   scale_colour_manual(name = "", values = c("red", "blue"),
                       guide = guide_legend(override.aes = list(
-                        shape = c(21, NA),
+                        shape = c(19, NA),
                         linetype = c(NA, 1)))) +
   labs(x = "Time", y = "Cover") +
   theme_bw(base_family = "Helvetica", base_size = 24) +
   theme(legend.position = "bottom",
         panel.background = element_rect(fill = "transparent", color = NA),
         plot.background = element_rect(fill = "transparent", color = NA),
-        legend.background = element_rect(fill = "transparent", color = NA))
+        legend.background = element_rect(fill = "transparent", color = NA),
+        legend.key = element_rect(fill = "transparent", color = NA))
 ```
 
 ## 状態空間モデル
@@ -521,7 +515,7 @@ ppc_rootogram(y, yrep) +
 ```
 
 
-## 被度の平均の推定値
+## 被度の平均の推定値（平滑化分布）
 
 ```{r sim2_plot}
 mu_summary <- fit2$summary("mu")
@@ -549,7 +543,8 @@ ggplot(df) +
   theme(legend.position = "bottom",
         panel.background = element_rect(fill = "transparent", color = NA),
         plot.background = element_rect(fill = "transparent", color = NA),
-        legend.background = element_rect(fill = "transparent", color = NA))
+        legend.background = element_rect(fill = "transparent", color = NA),
+        legend.key = element_rect(fill = "transparent", color = NA))
 ```
 
 
@@ -601,7 +596,7 @@ ppc_rootogram(y, yrep) +
         legend.background = element_rect(fill = "transparent", color = NA))
 ```
 
-## トレンドモデルによる被度の平均の推定値
+## トレンドモデルによる被度の平均の推定値（平滑化分布）
 
 ```{r sim3_plot}
 mu_summary <- fit3$summary("mu")
@@ -629,7 +624,8 @@ ggplot(df) +
   theme(legend.position = "bottom",
         panel.background = element_rect(fill = "transparent", color = NA),
         plot.background = element_rect(fill = "transparent", color = NA),
-        legend.background = element_rect(fill = "transparent", color = NA))
+        legend.background = element_rect(fill = "transparent", color = NA),
+        legend.key = element_rect(fill = "transparent", color = NA))
 ```
 
 
