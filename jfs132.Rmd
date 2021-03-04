@@ -296,14 +296,15 @@ sim_cover_prob(delta = 0.4)
 ## 観測値が得られる確率
 
 \begin{align*}
-Y_t &\sim \mathrm{Categorical}(\Pr(Y_t = i \mid \mu_t, \delta)), \; i \in {1,\dots,6} \\
-\Pr(Y_t = 1 \mid \mu_t, \delta) &=  I\left(k_1, \frac{\mu_t}{\delta}-\mu_t,\frac{(1-\mu_t)(1-\delta)}{\delta}\right) \\
-\Pr(Y_t = i \mid \mu_t, \delta) &= I\left(k_i,\frac{\mu_t}{\delta}-\mu_t,\frac{(1-\mu_t)(1-\delta)}{\delta}\right) \\
-   & - I\left(k_{i-1},\frac{\mu_t}{\delta}-\mu_t,\frac{(1-\mu_t)(1-\delta)}{\delta}\right), \; i \in {2,\dots,5} \\
-\Pr(Y_t = 6 \mid \mu_t, \delta) &= 1 - I\left(k_5,\frac{\mu_t}{\delta}-\mu_t,\frac{(1-\mu_t)(1-\delta)}{\delta}\right)
+Y &\sim \mathrm{Categorical}(\symbf{p}), \; \symbf{p} = (p_1,p_2,\dots,p_6) \\
+p_1 &=  I(k_1, a, b) \\
+p_i &= I(k_i, a, b) - I(k_{i-1}, a, b), \; i \in \{2,\dots,5\} \\
+p_6 &= 1 - I(k_5, a, b)
 \end{align*}
 
 $I$は正則化不完全ベータ関数, $k_i$は階級の境界値
+
+$a = \frac{\mu}{\delta}-\mu$, $b = \frac{(1-\mu)(1-\delta)}{\delta}$
 
 
 
@@ -391,9 +392,8 @@ fit1$print(c("mu", "delta"))
 
 - 被度0を組み込む
     - Zero過剰モデル (Herpigny & Gosselin 2015)
-    - 明示的な検出誤差 (Irvine et al. 2019)
 - 明示的な測定誤差
-    - 被度階級を誤る過程を明示的にモデル化 (Irvine et al. 2019)
+    - 被度階級を誤る過程を明示的にモデル化 (被度0を含む, Irvine et al. 2019)
 
 # 植生被度階級データの状態空間モデリング
 
