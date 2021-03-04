@@ -21,6 +21,7 @@ library(cmdstanr)
 options(mc.cores = parallel::detectCores())
 library(posterior)
 library(bayesplot)
+library(stringr)
 ```
 
 ## 本日の内容
@@ -346,19 +347,26 @@ print(y)
 与えられたベータ分布のパラメータ(a, b)に対して、
 指定された被度階級が観測される確率を求める関数を定義する。
 
-```{r, message=FALSE}
+```{r, include=FALSE}
 model_file <- "cover.stan"
 s <- scan(model_file, what = character(), sep = "\n")
-cat(s[c(5, 15:27)], sep = "\n")
 ```
 
+```{r}
+p1 <- str_which(s, "^functions")
+p2 <- str_which(s, "^  real")[1]
+p3 <- str_which(s, "^  \\}")[1]
+cat(s[c(p1, p2:p3)], sep = "\n")
+```
 
 ## Stanによるモデリング(2)
 
 モデルブロック
 
 ```{r}
-cat(s[59:67], sep = "\n")
+p4 <- str_which(s, "^model")
+p5 <- str_which(s, "^generated")
+cat(s[p4:(p5 - 1)], sep = "\n")
 ```
 
 ## あてはめ結果
@@ -393,7 +401,7 @@ fit1$print(c("mu", "delta"))
 - 被度0を組み込む
     - Zero過剰モデル (Herpigny & Gosselin 2015)
 - 明示的な測定誤差
-    - 被度階級を誤る過程を明示的にモデル化 (被度0を含む, Irvine et al. 2019)
+    - 被度階級を誤る過程を明示的にモデル化 (被度0も含む, Irvine et al. 2019)
 
 # 植生被度階級データの状態空間モデリング
 
@@ -435,7 +443,7 @@ med_cover <- (c(k, 1) - c(0, k)) / 2 + c(0, k)
 df <- data.frame(time = 1:Nt,
                  mu = mu,
                  Y = med_cover[y],
-                 lab_mu = "True value",
+                 lab_mu = "True mean",
                  lab_Y = "Observed (class med.)")
 ggplot(df) +
   geom_line(aes(x = time, y = mu, colour = lab_mu), size = 2) +
@@ -455,28 +463,47 @@ ggplot(df) +
 
 ## 状態空間モデル
 
-システムモデル
-
+システムモデル（$\delta$は不変とする）
 \begin{align*}
 \mathrm{logit}(\mu_t) &= \theta_t \\
 \theta_t &= \theta_{t-1} + \epsilon_t \\
 \epsilon_t &\sim \mathrm{Normal}(0, \sigma^2)
 \end{align*}
 
-
 観測モデル
-
 \begin{align*}
-Y_t &\sim \mathrm{Categorical}(\Pr(Y_t = i \mid \mu_t, \delta)), \; i \in {1,\dots,6}
+Y_t &\sim \mathrm{Categorical}(\symbf{p}_t) \\
+p_{t,i} &= \Pr(Y_t = i \mid \mu_t, \delta)), \; i \in \{1,\dots,6\}
 \end{align*}
 
+## Stanによる状態空間モデル(1)
 
-$\delta$は不変とする。
+`parameters`ブロックと`transformed parameters`ブロック
+
+```{r sim2_stan, include=FALSE}
+model_file <- "cover_ssm.stan"
+s <- scan(model_file, what = character(), sep = "\n")
+p1 <- str_which(s, "^parameters")
+p2 <- str_which(s, "^model")
+p3 <- str_which(s, "^generated")
+```
+
+```{r}
+cat(s[p1:(p2 - 1)], sep = "\n")
+```
+
+## Stanによる状態空間モデル(2)
+
+`model`ブロック
+
+```{r}
+cat(s[p2:(p3 - 1)], sep = "\n")
+```
 
 ## あてはめ結果
 
 ```{r sim2_fit, include=FALSE}
-model_file <- "cover_ssm.stan"
+
 output_file <- "fit2.RDS"
 if (file.exists(output_file) &
     (file.mtime(output_file) > file.mtime(model_file))) {
@@ -523,7 +550,7 @@ df <- data.frame(time = 1:Nt, mu = mu, Y = med_cover[y],
                  mean = mu_summary[, "mean"],
                  q5 = mu_summary[, "q5"],
                  q95 = mu_summary[, "q95"],
-                 lab_mu = "True value",
+                 lab_mu = "True mean",
                  lab_Y = "Observed",
                  lab_smth = "Smoothed")
 ggplot(df) +
@@ -558,8 +585,32 @@ ggplot(df) +
 \epsilon_t &\sim \mathrm{Normal}(0, \sigma^2)
 \end{align*}
 
-```{r sim3_fit, include=FALSE}
+## Stanによるトレンドモデル(1)
+
+`transformed parameters`ブロック (再パラメータ化)
+
+```{r sim3_stan, include=FALSE}
 model_file <- "cover_ssm2.stan"
+s <- scan(model_file, what = character(), sep = "\n")
+p1 <- str_which(s, "^transformed parameters")
+p2 <- str_which(s, "^model")
+p3 <- str_which(s, "^generated")
+```
+
+```{r}
+cat(s[p1:(p2 - 1)], sep = "\n")
+```
+
+## Stanによるトレンドモデル(2)
+
+`model`ブロック
+
+```{r}
+cat(s[p2:(p3 - 1)], sep = "\n")
+```
+
+
+```{r sim3_fit, include=FALSE}
 output_file <- "fit3.RDS"
 if (file.exists(output_file) &
     (file.mtime(output_file) > file.mtime(model_file))) {
@@ -604,7 +655,7 @@ df <- data.frame(time = 1:Nt, mu = mu, Y = med_cover[y],
                  mean = mu_summary[, "mean"],
                  q5 = mu_summary[, "q5"],
                  q95 = mu_summary[, "q95"],
-                 lab_mu = "True value",
+                 lab_mu = "True mean",
                  lab_Y = "Observed",
                  lab_smth = "Smoothed")
 ggplot(df) +
