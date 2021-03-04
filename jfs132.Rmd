@@ -14,6 +14,8 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(comment = NA)
+knitr::opts_chunk$set(prompt = TRUE)
 library(extraDistr)
 library(ggplot2)
 library(ggthemes)
