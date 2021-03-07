@@ -57,14 +57,14 @@ data {
 }
 
 parameters {
-  real<lower = 0, upper = 1> delta;           // Intra-quad corr.
-                                              //   or uncertainty
-  vector[N_t] theta;                          // Latent state (logit-scale)
-  real<lower = 0> sigma;                      // S.D. of temporal changes
+  real<lower = 0, upper = 1> delta;  // Intra-quad corr.
+                                     //   or uncertainty
+  vector[N_t] theta;                 // Latent state (logit)
+  real<lower = 0> sigma;             // S.D. of temporal changes
 }
 
 transformed parameters {
-  vector[N_t] mu = inv_logit(theta);          // Mean proportion of cover
+  vector[N_t] mu = inv_logit(theta); // Mean proportion of cover
 }
 
 model {
