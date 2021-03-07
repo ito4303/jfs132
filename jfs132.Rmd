@@ -82,20 +82,22 @@ ggplot(df) +
 
 ## 状態空間モデル
 
-
 \begin{center}
 \includegraphics[width=9cm]{ssm.pdf}
 \end{center}
-
-
 
 - 潜在状態の時間変化と、観測過程を分離する（階層化）。
     - 状態方程式（システムモデル） $\symbf{\theta}_t = f(\symbf{\theta}_{t-1}, \symbf{w}_t)$
     - 観測方程式（観測モデル） $y_t = g(\symbf{\theta}_t, v_t)$
 
 
-
 # 植生被度階級データ
+
+## 植生被度
+
+\begin{center}
+\includegraphics[width=8cm]{DSCN9248.jpeg}
+\end{center}
 
 ## 被度階級データ
 
