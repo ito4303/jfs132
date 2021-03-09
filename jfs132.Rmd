@@ -222,9 +222,10 @@ ggplot(df, aes(x = Cover, y = Density, color = delta)) +
 0.75〜1 (1を含む)  & → & 6
 \end{tabular}
 
-$\delta$を変化させたとき、平均被度に対して、各被度階級が選ばれる確率を図示する。
-
-<!-- Function definition -->
+<!-- Function definition
+$\delta$を変化させたとき、平均被度に対して、各被度階級が選ばれる確率を
+図示する関数
+今回は時間の関係で使用しない -->
 
 ```{r gen_sim_data, include=FALSE}
 cover_prob <- function(cut_points, a, b) {
@@ -268,42 +269,6 @@ sim_cover_prob <- function(delta = c(0.001, 0.01, 0.05, 0.1),
           legend.background = element_rect(fill = "transparent", color = NA))
   print(plt)
 }
-```
-
-## $\delta$=0.001
-
-```{r delta_0.001, echo=FALSE}
-sim_cover_prob(delta = 0.001)
-```
-
-## $\delta$=0.01
-
-```{r delta_0.01, echo=FALSE}
-sim_cover_prob(delta = 0.01)
-```
-
-## $\delta$=0.05
-
-```{r delta_0.05, echo=FALSE}
-sim_cover_prob(delta = 0.05)
-```
-
-## $\delta$=0.1
-
-```{r delta_0.1, echo=FALSE}
-sim_cover_prob(delta = 0.1)
-```
-
-## $\delta$=0.2
-
-```{r delta_0.2, echo=FALSE}
-sim_cover_prob(delta = 0.2)
-```
-
-## $\delta$=0.4
-
-```{r delta_0.4, echo=FALSE}
-sim_cover_prob(delta = 0.4)
 ```
 
 ## 観測値が得られる確率
