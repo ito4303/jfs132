@@ -37,6 +37,8 @@ library(stringr)
 
 https://github.com/ito4303/jfs132
 
+モデリングには Stan (Stan Development Team 2020) を使用しています。
+Stanについては，松浦 (2016) などを参照してください。
 
 # 状態空間モデル
 
@@ -67,18 +69,18 @@ ggplot(df) +
         legend.background = element_rect(fill = "transparent", color = NA))
 ```
 
-単純に時間を説明変数にして線形回帰すると、ランダムウォークでも多くの場合「ゆーい」になる。
+単純に時間を説明変数にして線形回帰すると，ランダムウォークでも多くの場合「ゆーい」になる。
 
 ## 時系列分析
 
-\begin{spacing}{1.5}
-物理的に時間の関数になることがわかっているような時系列データなどはともかく、 \\
+\begin{spacing}{1.75}
+（物理的・経験的に）時間の関数になることがわかっているような場合はともかく， \\
 {\Large 自己相関のある時系列データを正しく解析するには\textbf{時系列分析}が必要になる。}
 \end{spacing}
 
-\begin{spacing}{1.5}
-本講演では、\textbf{状態空間モデル}による時系列分析をあつかう。
-\end{spacing}
+本講演では，\textbf{状態空間モデル}による時系列分析をあつかう。
+状態空間モデルも階層モデルの1種。
+
 
 ## 状態空間モデル
 
@@ -86,12 +88,13 @@ ggplot(df) +
 \includegraphics[width=9cm]{ssm.pdf}
 \end{center}
 
-- 潜在状態の時間変化と、観測過程を分離する（階層化）。
-    - 状態方程式（システムモデル） $\symbf{\theta}_t = f(\symbf{\theta}_{t-1}, \symbf{w}_t)$
-    - 観測方程式（観測モデル） $y_t = g(\symbf{\theta}_t, v_t)$
+- 潜在状態の時間変化と，観測過程を分離する（階層モデリング）。
+    - 過程モデル（状態方程式） $\symbf{\theta}_t = f(\symbf{\theta}_{t-1}, \symbf{w}_t)$
+        - 本講演では，観測されない平均被度が変化する過程
+    - 観測モデル（観測方程式） $y_t = g(\symbf{\theta}_t, v_t)$
+        - 本講演では，被度階級データが観測される過程
 
-
-# 植生被度階級データ
+# 植生被度階級データ（観測モデル）
 
 ## 植生被度
 
@@ -113,12 +116,12 @@ ggplot(df) +
 0.75〜1   & → & 5
 \end{tabular}
 
-- 順序尺度データなので、そのまま数値として扱えない。
+- 順序尺度データなので，そのまま数値として扱えない。
 
 ## ベータ分布
 
-0〜1の連続値の被度は、ベータ分布でモデル化することが多い。
-値が、ベータ分布から確率的に抽出されるとする。
+0〜1の連続値の被度は，ベータ分布でモデル化することが多い。
+値が，ベータ分布から確率的に抽出されるとする。
 
 \begin{align*}
 y \sim \symup{Beta}(\alpha, \beta) \\
@@ -133,9 +136,9 @@ y \sim \symup{Beta}(\alpha, \beta) \\
 y \sim \symup{Beta}\left(\frac{\mu}{\delta}-\mu,\frac{(1-\mu)(1-\delta)}{\delta}\right)
 \end{align*}
 
-被度階級のモデリングでは、$\delta (0 < \delta < 1)$はpin-point法による被度測定における方形区内の分布相関 (Damgaard 2012) 。
+被度階級のモデリングでは，$\delta (0 < \delta < 1)$はpin-point法による被度測定における方形区内の分布相関 (Damgaard 2012) 。
 
-しかし、被度測定における不確実性とも解釈可能（ただし明示的な観測誤差ではない）。
+しかし，被度測定における不確実性とも解釈可能（ただし明示的な観測誤差ではない）。
 
 ## ベータ分布($\mu$=0.5のとき) {#beta_distribution1}
 
@@ -223,7 +226,7 @@ ggplot(df, aes(x = Cover, y = Density, color = delta)) +
 \end{tabular}
 
 <!-- Function definition
-$\delta$を変化させたとき、平均被度に対して、各被度階級が選ばれる確率を
+$\delta$を変化させたとき，平均被度に対して，各被度階級が選ばれる確率を
 図示する関数
 今回は時間の関係で使用しない -->
 
@@ -271,7 +274,9 @@ sim_cover_prob <- function(delta = c(0.001, 0.01, 0.05, 0.1),
 }
 ```
 
-## 観測値が得られる確率
+## 観測モデル
+
+観測値$Y$が得られる確率
 
 \begin{align*}
 Y &\sim \mathrm{Categorical}(\symbf{p}), \; \symbf{p} = (p_1,p_2,\dots,p_6) \\
@@ -284,7 +289,26 @@ $I$は正則化不完全ベータ関数, $k_i$は階級の境界値
 
 $a = \frac{\mu}{\delta}-\mu$, $b = \frac{(1-\mu)(1-\delta)}{\delta}$
 
+## 面積が各階級の観測確率
 
+```{r plot_observation_model}
+mu <- 0.3
+delta <- 0.15
+a <- mu / delta - mu
+b <- (1 - mu) * (1 - delta) / delta
+x <- seq(0.001, 1 - 0.001, length = 100)
+y0 <- rep(0, length(x))
+y1 <- dbeta(x, a, b)
+ggplot(data.frame(x = x, y0 = y0, y1 = y1)) +
+  geom_ribbon(aes(x, ymin = y0, ymax = y1), fill = "gray") +
+  geom_vline(xintercept = c(0.01, 0.1, 0.25, 0.5, 0.75),
+             size = 0.3, linetype = 2) +
+  labs(x = "cover") +
+  theme_classic(base_family = "Helvetica", base_size = 24) +
+  theme(panel.background = element_rect(fill = "transparent", color = NA),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        legend.background = element_rect(fill = "transparent", color = NA))
+```
 
 ## 模擬データ {#simdata1}
 
@@ -311,7 +335,7 @@ y <- cover_class(p, delta, N)
 
 - 平均被度$\mu$ = 0.6
 - $\delta$ = 0.05 とする。
-- 10回測定する($N = 10$)。
+- 10回測定する（$N = 10$）。
 
 生成されたデータ
 
@@ -321,7 +345,7 @@ print(y)
 
 ## Stanによるモデリング(1)
 
-与えられたベータ分布のパラメータ(a, b)に対して、
+与えられたベータ分布のパラメータ(a, b)に対して，
 指定された被度階級が観測される確率を求める関数を定義する。
 
 ```{r, include=FALSE}
@@ -338,7 +362,7 @@ cat(s[c(p1, p2:p3)], sep = "\n")
 
 ## Stanによるモデリング(2)
 
-モデルブロック
+`model`ブロック
 
 ```{r}
 p4 <- str_which(s, "^model")
@@ -373,14 +397,14 @@ fit1$print(c("mu", "delta"))
 
 ## モデルの拡張
 
-今回は扱わないが、以下のような拡張が可能
+今回は扱わないが，以下のような拡張が可能
 
 - 被度0を組み込む
     - Zero過剰モデル (Herpigny & Gosselin 2015)
 - 明示的な測定誤差
-    - 被度階級を誤る過程を明示的にモデル化 (被度0も含む, Irvine et al. 2019)
+    - 被度階級の観測を誤る過程を明示的にモデル化 (被度0も含む, Irvine et al. 2019)
 
-# 植生被度階級データの状態空間モデリング
+# 植生被度階級データの状態空間モデリング（過程モデルと連結）
 
 ## 模擬データ
 
@@ -440,7 +464,7 @@ ggplot(df) +
 
 ## 状態空間モデル
 
-システムモデル（$\delta$は不変とする）
+過程モデル（$\delta$は不変とする）
 \begin{align*}
 \mathrm{logit}(\mu_t) &= \theta_t \\
 \theta_t &= \theta_{t-1} + \epsilon_t \\
@@ -507,6 +531,8 @@ fit2$print(c("delta", "sigma"))
 
 ## 事後予測チェック
 
+モデルが，観測データと矛盾していないかチェックする。
+
 `bayesplot`パッケージの`ppc_rootogram`関数を使用
 
 ```{r sim2_ppc, fig.height=5.5}
@@ -552,9 +578,9 @@ ggplot(df) +
 ```
 
 
-## トレンドモデル
+## 過程モデルを変えてみる
 
-潜在状態$\theta$は、傾きがわずかに変化するとする（2階差分）
+潜在状態$\theta$は，傾きが変化するとする（2階差分，トレンドモデル）。
 
 \begin{align*}
 \mathrm{logit}(\mu_t) &= \theta_t \\
@@ -564,7 +590,9 @@ ggplot(df) +
 
 ## Stanによるトレンドモデル(1)
 
-`transformed parameters`ブロック (再パラメータ化)
+`transformed parameters`ブロック
+
+計算効率のため再パラメータ化（松浦 2016など参照）
 
 ```{r sim3_stan, include=FALSE}
 model_file <- "cover_ssm2.stan"
@@ -659,5 +687,5 @@ ggplot(df) +
 
 # まとめ
 
-- 被度階級データも、時系列データも、単純には扱いにくい。
-- しかし、適切にモデル化することで、うまく扱うことができる。
+- 被度階級データも，時系列データも，単純には扱いにくい。
+- しかし，適切にモデル化することで，うまく扱うことができる。

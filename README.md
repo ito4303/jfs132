@@ -12,5 +12,5 @@
 - Irvine K.M., Wright W.J., Shanahan E.K., Rodhouse, T.J. (2019) Cohesive framework for modelling plant cover class data. Methods in Ecology and Evolution 10:1749--1760. doi:[10.1111/2041-210X.13262](https://doi.org/10.1111/2041-210X.13262)
 - 伊東宏樹 (2020) 植生被度階級データのモデリング. 日本森林学会学術講演集131:S1-5. doi:[10.11519/jfsc.131.0_229](https://doi.org/https://doi.org/10.11519/jfsc.131.0_229). コード:[https://github.com/ito4303/jfs131](https://github.com/ito4303/jfs131)
 - Itô H. (2020) State-space modeling of the dynamics of temporal plant cover using visually determined class data. PeerJ 8:e9383. doi:[10.7717/peerj.9383](https://doi.org/10.7717/peerj.9383)
-
-
+- 松浦健太郎 (2016) StanとRでベイズ統計モデリング. 共立出版
+- Stan Development Team. (2020) Stan Modeling Language Users Guide and Reference Manual, 2.25.0. [https://mc-stan.org/](https://mc-stan.org/)
